@@ -40,6 +40,7 @@ function App() {
   const handleConfirm = () => {
     if (parseInt(amount) >= 40) {
       navigate('/qrCodePage', { state: { imageSrc, text, amount } }); // ส่งข้อมูลไปหน้าถัดไป
+      navigate('/third', { state: { imageSrc, text, amount } }); // ส่งข้อมูลไปหน้าถัดไป
     } else {
       alert('กรุณาโอนเงินขั้นต่ำ 40 บาท');
     }

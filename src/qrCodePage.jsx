@@ -16,7 +16,7 @@ function QRCodePage() {
 
     return (
         <div style={{ padding: '20px' }}>
-            <h2 style={{ textAlign: 'center' }}>ภาพตัวอย่างของคุณ</h2>
+            <h2 style={{ textAlign: 'center' }}>ข้อมูลของคุณ</h2>
 
             {/* แสดงรูปภาพ */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
