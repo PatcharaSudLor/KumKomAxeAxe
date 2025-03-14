@@ -40,7 +40,6 @@ function App() {
   const handleConfirm = () => {
     if (parseInt(amount) >= 40) {
       navigate('/qrCodePage', { state: { imageSrc, text, amount } }); // ส่งข้อมูลไปหน้าถัดไป
-      navigate('/third', { state: { imageSrc, text, amount } }); // ส่งข้อมูลไปหน้าถัดไป
     } else {
       alert('กรุณาโอนเงินขั้นต่ำ 40 บาท');
     }
@@ -81,32 +80,23 @@ function App() {
         </div>
       </div>
       <div data-layer="ใส่ข้อความของคุณ :" style={{ color: 'black', fontSize: 10, fontFamily: 'Inter', position: 'absolute', left: 22, top: 460, fontWeight: '400', wordWrap: 'break-word' }}>ใส่ข้อความของคุณ :</div>
-      <div data-layer="Rectangle 10" className="Rectangle10" style={{ display: 'inline-block', position: 'absolute', left: 22, top: 478 }}>
-        <svg width="316" height="18" viewBox="0 0 316 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0.4 0.4H315.6V17.6H0.4V0.4Z" fill="#FDFDFD" stroke="black" stroke-width="1"  />
-        </svg>
+      <div style={{ position: 'absolute', top: 475, left: 22, width: '316px', height: '22px' }}>
         <input
           type="text"
+          placeholder="  พิมพ์ข้อความที่นี่  "
           style={{
-            position: 'absolute',
-            top: '0',
-            left: '0',
             width: '100%',
             height: '100%',
             background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            padding: '0',
+            border: '0.5px black solid',
+            borderRadius: '33px',
+            padding: '1px',
             color: 'black',
-            fontSize: '11px',
-            fontFamily: 'Inter',
-
-          
-
+            fontSize: '12px',
           }}
           value={text}
           onChange={handleTextChange} // ใช้ฟังก์ชันนี้เพื่ออัปเดตข้อความ
-          placeholder="  พิมพ์ข้อความที่นี่  "
+          
         />
       </div>
 
@@ -161,9 +151,8 @@ function App() {
       </div>
 
       {/* ส่วนสำหรับระบุจำนวนเงินที่ต้องการโอน */}
-      <div data-layer="ระบุจำนวนเงินที่ต้องการโอน :" style={{ position: 'absolute', left: 22, top: 510, color: 'black', fontSize: 10, fontFamily: 'Inter', fontWeight: '400', wordWrap: 'break-word' }}>ระบุจำนวนเงินที่ต้องการโอน :</div>
-
-      <div style={{ position: 'absolute', top: 530, left: 22, width: '316px', height: '18px' }}>
+      <div data-layer="ระบุจำนวนเงินที่ต้องการโอน :" style={{ position: 'absolute', left: 22, top: 515, color: 'black', fontSize: 10, fontFamily: 'Inter', fontWeight: '400', wordWrap: 'break-word' }}>ระบุจำนวนเงินที่ต้องการโอน :</div>
+      <div style={{ position: 'absolute', top: 530, left: 22, width: '316px', height: '22px' }}>
         <input
           type="number"
           value={amount}
@@ -175,9 +164,10 @@ function App() {
             height: '100%',
             background: 'transparent',
             border: '0.5px solid black',
+            borderRadius: '33px',
             fontSize: '12px',
             color: 'black',
-            padding: '2px',
+            padding: '0px',
           }}
         />
         {!isAmountValid && (
