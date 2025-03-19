@@ -38,9 +38,8 @@ function App() {
     }
   };
 
-
   const handleConfirm = () => {
-    navigate('/qrCodePage', { state: { imageSrc, text, phone_num } }); // ส่งข้อมูลไปหน้าถัดไป
+    navigate('/qrCodePage', { state: { imageSrc, text, phone_num} }); // ส่งข้อมูลไปหน้าถัดไป
   };
 
   return (
@@ -192,7 +191,7 @@ function App() {
         </button>
       </div>
 
-     
+
 
 
 

@@ -31,6 +31,7 @@ const uploadSchema = new mongoose.Schema({
     imageUrl: { type: String, required: true },
     text: { type: String, required: true },
     createdAt: { type: Date, default: Date.now },
+    tel: { type: Number, required:true},
 });
 
 const Upload = mongoose.model('Upload', uploadSchema);
@@ -44,24 +45,24 @@ wss.on('connection', (ws) => {
 
 // ✅ Endpoint สำหรับอัปโหลดรูปและข้อความ
 app.post('/upload', async (req, res) => {
-    const { imageUrl, text } = req.body;
+    const { imageUrl, text ,tel} = req.body;
 
-    if (!imageUrl || !text) {
-        return res.status(400).json({ error: 'Missing imageUrl or text' });
+    if (!imageUrl || !text || !tel) {
+        return res.status(400).json({ error: 'Missing imageUrl or text or tel' });
     }
 
     try {
-        const newUpload = new Upload({ imageUrl, text });
+        const newUpload = new Upload({ imageUrl, text ,tel });
         await newUpload.save();
 
         // ✅ แจ้ง WebSocket
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({ imageUrl, text }));
+                client.send(JSON.stringify({ imageUrl, text ,tel }));
             }
         });
 
-        res.json({ message: '✅ Image uploaded successfully', imageUrl, text });
+        res.json({ message: '✅ Image uploaded successfully', imageUrl, text ,tel });
     } catch (err) {
         console.error('❌ Upload error:', err);
         res.status(500).json({ error: 'Failed to upload image' });
@@ -76,6 +77,31 @@ app.get('/uploads', async (req, res) => {
     } catch (err) {
         console.error('❌ Fetch error:', err);
         res.status(500).json({ error: 'Failed to fetch uploads' });
+    }
+});
+
+// ✅ DELETE Endpoint สำหรับลบอัปโหลด
+app.delete('/upload/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const deletedUpload = await Upload.findByIdAndDelete(id);
+        
+        if (!deletedUpload) {
+            return res.status(404).json({ error: 'Upload not found' });
+        }
+
+        // แจ้ง WebSocket ทุก client ว่าได้ลบข้อมูลแล้ว
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({ message: 'Image deleted', id }));
+            }
+        });
+
+        res.json({ message: '✅ Image deleted successfully', id });
+    } catch (err) {
+        console.error('❌ Delete error:', err);
+        res.status(500).json({ error: 'Failed to delete image' });
     }
 });
 
