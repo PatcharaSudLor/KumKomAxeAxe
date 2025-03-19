@@ -5,8 +5,7 @@ import './App.css';
 function App() {
   const [imageSrc, setImageSrc] = useState(null);
   const [text, setText] = useState(''); // สถานะเก็บข้อความที่ผู้ใช้พิมพ์
-  const [amount, setAmount] = useState(''); // สถานะเก็บจำนวนเงินที่ผู้ใช้พิมพ์
-  const [isAmountValid, setIsAmountValid] = useState(true); // สถานะสำหรับตรวจสอบว่าจำนวนเงินถูกต้องหรือไม่
+  const [phone_num, setPhoneNumber] = useState(''); // สถานะเก็บเบอร์โทรที่ผู้ใช้พิมพ์
   const navigate = useNavigate(); //ฟังก์ชันใช้สำหรับเปลี่ยนหน้า
 
   // ฟังก์ชันสำหรับจัดการการอัปโหลดรูปภาพ
@@ -26,23 +25,22 @@ function App() {
     setText(e.target.value);
   };
 
-  // ฟังก์ชันสำหรับจัดการการใส่จำนวนเงิน
-  const handleAmountChange = (e) => {
+  // ฟังก์ชันสำหรับจัดการการใส่เบอร์โทร
+  const handlePhoneChange = (e) => {
     const value = e.target.value;
-    setAmount(value);
-    if (parseFloat(value) >= 40) {
-      setIsAmountValid(true);
+    setPhoneNumber(value);
+
+    // ตรวจสอบว่าเป็นเบอร์โทร 10 หลัก (ในไทย)
+    if (/^0[689]\d{8}$/.test(value)) {
+      setIsPhoneValid(true);
     } else {
-      setIsAmountValid(false);
+      setIsPhoneValid(false);
     }
   };
 
+
   const handleConfirm = () => {
-    if (parseInt(amount) >= 40) {
-      navigate('/qrCodePage', { state: { imageSrc, text, amount } }); // ส่งข้อมูลไปหน้าถัดไป
-    } else {
-      alert('กรุณาโอนเงินขั้นต่ำ 40 บาท');
-    }
+    navigate('/qrCodePage', { state: { imageSrc, text, phone_num } }); // ส่งข้อมูลไปหน้าถัดไป
   };
 
   return (
@@ -55,6 +53,7 @@ function App() {
       <div data-layer="แค่เธอเปิด(วาร์ป)โลกก็เปลี่ยน" style={{ textAlign: 'center', color: '#FF0707', fontSize: 14, fontFamily: 'Roboto Mono', position: 'absolute', top: 116, left: 95, fontWeight: '400', wordWrap: 'break-word', textShadow: '0px 4px 4px rgba(0, 0, 0, 0.25)' }}>แค่เธอเปิด(วาร์ป)โลกก็เปลี่ยน</div>
       <div data-layer="Group 6" className="Group6" style={{ width: 69, height: 19, position: 'absolute', left: 145, top: 374 }}>
         <div data-layer="Rectangle 9" className="Rectangle9" style={{ width: 69, height: 14, left: 'center', top: 65, position: 'absolute', background: 'white', borderRadius: 124, border: '0.50px black solid' }} />
+
         {/* ปุ่มอัปโหลดรูปภาพ */}
         <div
           data-layer="อัปโหลดรูปภาพ"
@@ -80,23 +79,24 @@ function App() {
         </div>
       </div>
       <div data-layer="ใส่ข้อความของคุณ :" style={{ color: 'black', fontSize: 10, fontFamily: 'Inter', position: 'absolute', left: 22, top: 460, fontWeight: '400', wordWrap: 'break-word' }}>ใส่ข้อความของคุณ :</div>
-      <div style={{ position: 'absolute', top: 475, left: 22, width: '316px', height: '22px' }}>
+      <div style={{ position: 'absolute', top: 475, left: 0, width: '316px', height: '22px' }}>
         <input
           type="text"
           placeholder="  พิมพ์ข้อความที่นี่  "
           style={{
-            width: '100%',
-            height: '100%',
+            width: '80%',
+            height: '80%',
             background: 'transparent',
             border: '0.5px black solid',
             borderRadius: '33px',
             padding: '1px',
+            padding: '5px 10px',
             color: 'black',
             fontSize: '12px',
           }}
           value={text}
           onChange={handleTextChange} // ใช้ฟังก์ชันนี้เพื่ออัปเดตข้อความ
-          
+
         />
       </div>
 
@@ -150,33 +150,32 @@ function App() {
         )}
       </div>
 
-      {/* ส่วนสำหรับระบุจำนวนเงินที่ต้องการโอน */}
-      <div data-layer="ระบุจำนวนเงินที่ต้องการโอน :" style={{ position: 'absolute', left: 22, top: 515, color: 'black', fontSize: 10, fontFamily: 'Inter', fontWeight: '400', wordWrap: 'break-word' }}>ระบุจำนวนเงินที่ต้องการโอน :</div>
-      <div style={{ position: 'absolute', top: 530, left: 22, width: '316px', height: '22px' }}>
+      {/* กรอกเบอร์โทรเพื่อสะสมแต้ม */}
+      <div data-layer="กรอกเบอร์โทรของคุณเพื่อสะสมแต้ม :" style={{ position: 'absolute', left: 22, top: 515, color: 'black', fontSize: 10, fontFamily: 'Inter', fontWeight: '400', wordWrap: 'break-word' }}>กรอกเบอร์โทรของคุณเพื่อสะสมแต้ม :</div>
+      <div style={{ position: 'absolute', top: 530, left: -47, width: '316px', height: '22px' }}>
         <input
-          type="number"
-          value={amount}
-          onChange={handleAmountChange}
-          min="40"
-          placeholder="  จำนวนเงิน (อย่างน้อย 40 บาท)  "
+          type="tel"
+          value={phone_num}
+          onChange={handlePhoneChange}
+          placeholder="  เช่น 09xxxxxxxx  "
+          maxLength="10"
+          pattern="[0-9]*"
           style={{
-            width: '100%',
-            height: '100%',
+            width: '50%',
+            height: '80%',
             background: 'transparent',
             border: '0.5px solid black',
             borderRadius: '33px',
             fontSize: '12px',
             color: 'black',
             padding: '0px',
+            padding: '5px 10px',
           }}
         />
-        {!isAmountValid && (
-          <span style={{ color: 'red', fontSize: '10px' }}>กรุณาโอนเงินขั้นต่ำ 40 บาท</span>
-        )}
       </div>
-        
-        {/*ปุ่มตกลง*/}
-        <div style={{ position: 'absolute', left: 22, top: 590 }}>
+
+      {/*ปุ่มตกลง*/}
+      <div style={{ position: 'absolute', left: 22, top: 575 }}>
         <button
           onClick={handleConfirm}
           style={{
@@ -192,7 +191,10 @@ function App() {
           ตกลง
         </button>
       </div>
-      
+
+     
+
+
 
     </div>
   );
