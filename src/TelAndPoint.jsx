@@ -1,11 +1,17 @@
 // หน้า ShowOutputPage
+import { AlignCenter } from 'lucide-react';
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 
 function TelAndPoint() {
     const { state } = useLocation();
     const { score, phone_num } = state;
+    const navigate = useNavigate(); //ฟังก์ชันใช้สำหรับเปลี่ยนหน้า
+    
+    const handleHome = async () => {
+        navigate('/', {}); // ส่งข้อมูลไปหน้าถัดไป
+    }
 
     return (
         <div className="TelAndPoint">
@@ -21,6 +27,23 @@ function TelAndPoint() {
             <div data-layer="phone_num :" style={{ background: '#B3F4F9', borderRadius: '33px', padding: '5px 10px', position: 'absolute', left: 22, top: 380, color: 'black', fontSize: 12, fontFamily: 'Inter', fontWeight: '400', wordWrap: 'break-word' }}>{phone_num}</div>
             <div data-layer="แต้มสะสมของคุณตอนนี้:" style={{ position: 'absolute', left: 22, top: 412, color: 'black', fontSize: 12, fontFamily: 'Inter', fontWeight: '400', wordWrap: 'break-word' }}>แต้มสะสมของคุณตอนนี้:</div>
             <div data-layer="score" style={{ background: '#B3F4F9', borderRadius: '33px', padding: '5px 10px', position: 'absolute', left: 22, top: 430, color: 'black', fontSize: 12, fontFamily: 'Inter', fontWeight: '400', wordWrap: 'break-word' }}>{score}</div>
+
+            <div style={{ position: 'absolute', left: 160, top: 480}}>
+                <button
+                    onClick={handleHome}
+                    style={{
+                        width: 50,
+                        height: 22,
+                        backgroundColor: '#9AFF8C',
+                        borderRadius: 33,
+                        border: 'none',
+                        fontSize: 10,
+                        cursor: 'pointer',
+                    }}
+                >
+                    หน้าหลัก
+                </button>
+            </div>
         </div>
     );
 }
