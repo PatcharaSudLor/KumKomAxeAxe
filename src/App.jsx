@@ -7,9 +7,13 @@ function App() {
   const [text, setText] = useState(''); // สถานะเก็บข้อความที่ผู้ใช้พิมพ์
   const [phone_num, setPhoneNumber] = useState(''); // สถานะเก็บเบอร์โทรที่ผู้ใช้พิมพ์
   const navigate = useNavigate(); //ฟังก์ชันใช้สำหรับเปลี่ยนหน้า
+  const [isPhoneValid, setIsPhoneValid] = useState(false);
+
+  const API_URL = import.meta.env.VITE_APP_API_URL; // ดึงค่า API URL จาก .env
 
   // ฟังก์ชันสำหรับจัดการการอัปโหลดรูปภาพ
   const handleImageUpload = (e) => {
+
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
@@ -38,8 +42,19 @@ function App() {
     }
   };
 
-  const handleConfirm = () => {
-    navigate('/qrCodePage', { state: { imageSrc, text, phone_num} }); // ส่งข้อมูลไปหน้าถัดไป
+  const handleConfirm = async () => {
+    const response = await fetch(`${API_URL}/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        "imageUrl": "https://cdn.mos.cms.futurecdn.net/SV5w8LxgwLkjk6YG3xULKG-1000-80.jpg",
+        "text" : text,
+        "tel" : phone_num
+        
+      })
+    });
+
+    navigate('/qrCodePage', { state: { imageSrc, text, phone_num } }); // ส่งข้อมูลไปหน้าถัดไป
   };
 
   return (

@@ -12,7 +12,7 @@ const wss = new WebSocket.Server({ server });
 app.use(cors());
 app.use(express.json());
 
-// ✅ ปรับปรุงการเชื่อมต่อ MongoDB
+// ✅ เชื่อมต่อ MongoDB
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
     console.error('❌ ERROR: MONGO_URI is not defined in .env');
@@ -26,43 +26,87 @@ mongoose.connect(MONGO_URI)
         process.exit(1);
     });
 
-// ✅ สร้าง Schema และ Model
+// ✅ Schema สำหรับรูปอัปโหลด
 const uploadSchema = new mongoose.Schema({
     imageUrl: { type: String, required: true },
     text: { type: String, required: true },
     createdAt: { type: Date, default: Date.now },
-    tel: { type: Number, required:true},
+    tel: { type: String, required: true },
 });
-
 const Upload = mongoose.model('Upload', uploadSchema);
+
+// ✅ Schema สำหรับคะแนนสะสม
+const userScoreSchema = new mongoose.Schema({
+    phone_num: { type: String, required: true, unique: true },
+    score: { type: Number, default: 0 }
+});
+const UserScore = mongoose.model('UserScore', userScoreSchema);
 
 // ✅ WebSocket Connection
 wss.on('connection', (ws) => {
     console.log('🔌 New client connected');
-
     ws.on('close', () => console.log('🔌 Client disconnected'));
 });
 
-// ✅ Endpoint สำหรับอัปโหลดรูปและข้อความ
-app.post('/upload', async (req, res) => {
-    const { imageUrl, text ,tel} = req.body;
-
-    if (!imageUrl || !text || !tel) {
-        return res.status(400).json({ error: 'Missing imageUrl or text or tel' });
-    }
+// ✅ Endpoint สำหรับดึงคะแนนสะสม
+app.get('/points', async (req, res) => {
+    const { phone_num } = req.query;
+    if (!phone_num) return res.status(400).json({ error: 'Missing phone_num' });
 
     try {
-        const newUpload = new Upload({ imageUrl, text ,tel });
+        let user = await UserScore.findOne({ phone_num });
+        if (!user) {
+            user = new UserScore({ phone_num, score: 0 });
+            await user.save();
+        }
+        res.json({ phone_num, score: user.score });
+    } catch (err) {
+        console.error('❌ Fetch score error:', err);
+        res.status(500).json({ error: 'Failed to fetch score' });
+    }
+});
+
+// ✅ Endpoint สำหรับอัปเดตคะแนน
+app.post('/update-points', async (req, res) => {
+    const { phone_num, score } = req.body;
+    if (!phone_num || score === undefined) return res.status(400).json({ error: 'Missing phone_num or score' });
+
+    try {
+        let user = await UserScore.findOneAndUpdate(
+            { phone_num },
+            { score },
+            { new: true, upsert: true }
+        );
+        res.json({ message: '✅ Score updated successfully', phone_num, score: user.score });
+    } catch (err) {
+        console.error('❌ Update score error:', err);
+        res.status(500).json({ error: 'Failed to update score' });
+    }
+});
+
+// ✅ Endpoint สำหรับอัปโหลดรูปและเพิ่มแต้มอัตโนมัติ
+app.post('/upload', async (req, res) => {
+    const { imageUrl, text, tel } = req.body;
+    if (!imageUrl || !text || !tel) return res.status(400).json({ error: 'Missing imageUrl, text, or tel' });
+
+    try {
+        const newUpload = new Upload({ imageUrl, text, tel });
         await newUpload.save();
+
+        let user = await UserScore.findOneAndUpdate(
+            { phone_num: tel },
+            { $inc: { score: 25 } },
+            { new: true, upsert: true }
+        );
 
         // ✅ แจ้ง WebSocket
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({ imageUrl, text ,tel }));
+                client.send(JSON.stringify({ imageUrl, text, tel, score: user.score }));
             }
         });
 
-        res.json({ message: '✅ Image uploaded successfully', imageUrl, text ,tel });
+        res.json({ message: '✅ Image uploaded successfully', imageUrl, text, tel, score: user.score });
     } catch (err) {
         console.error('❌ Upload error:', err);
         res.status(500).json({ error: 'Failed to upload image' });
@@ -83,15 +127,10 @@ app.get('/uploads', async (req, res) => {
 // ✅ DELETE Endpoint สำหรับลบอัปโหลด
 app.delete('/upload/:id', async (req, res) => {
     const { id } = req.params;
-
     try {
         const deletedUpload = await Upload.findByIdAndDelete(id);
-        
-        if (!deletedUpload) {
-            return res.status(404).json({ error: 'Upload not found' });
-        }
+        if (!deletedUpload) return res.status(404).json({ error: 'Upload not found' });
 
-        // แจ้ง WebSocket ทุก client ว่าได้ลบข้อมูลแล้ว
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send(JSON.stringify({ message: 'Image deleted', id }));

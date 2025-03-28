@@ -1,16 +1,67 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 function ShowOutput() {
+
     const { state } = useLocation();
-    const { imageSrc, text, phone_num} = state;
+    const { imageSrc, text, phone_num } = state;
+    const [score, setScore] = useState(0);
     const navigate = useNavigate();
 
-    const handleNextPage = () => {
+    const API_URL = import.meta.env.VITE_APP_API_URL; // ดึงค่า API URL จาก .env
 
-        // ส่งข้อมูลไปยังหน้าถัดไป
-        navigate('/third', { state: { imageSrc, text, phone_num} });
+    useEffect(() => {
+        if (!phone_num) {
+            console.error("❌ phone_num is missing");
+            return;
+        }
+
+        const fetchScore = async () => {
+            try {
+                const response = await fetch(`${API_URL}/points?phone_num=${phone_num}`);
+                if (!response.ok) throw new Error("Failed to fetch points");
+
+                const data = await response.json();
+                setScore(data.score || 0);  // Set score to the fetched value
+
+            } catch (error) {
+                console.error("Error fetching score:", error);
+            }
+        };
+
+        fetchScore();
+    }, [phone_num, API_URL]);
+
+
+    const handleNextPage = async () => {
+        if (!phone_num) {
+            console.error("❌ phone_num is missing");
+            return;
+        }
+
+        try {
+            // เพิ่มคะแนน 25 ก่อน
+            const newScore = score + 25;
+
+            const response = await fetch(`${API_URL}/update-points`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone_num, score: newScore })
+            });
+
+            if (!response.ok) throw new Error("Failed to update points");
+
+            // อัปเดตคะแนนใน state
+            setScore(newScore);
+
+            // ส่งข้อมูลไปยังหน้าถัดไป
+            navigate('/third', { state: { imageSrc, text, phone_num, score: newScore } });
+
+        } catch (error) {
+            console.error("Error updating score or navigating:", error);
+        }
     };
+
 
 
     return (
