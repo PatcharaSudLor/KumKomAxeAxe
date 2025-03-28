@@ -1,5 +1,4 @@
 // หน้า ShowOutputPage
-import { AlignCenter } from 'lucide-react';
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 

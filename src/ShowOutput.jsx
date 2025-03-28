@@ -41,7 +41,7 @@ function ShowOutput() {
 
         try {
             // เพิ่มคะแนน 25 ก่อน
-            const newScore = score + 25;
+            /*const newScore = score + 25;
 
             const response = await fetch(`${API_URL}/update-points`, {
                 method: 'POST',
@@ -52,10 +52,10 @@ function ShowOutput() {
             if (!response.ok) throw new Error("Failed to update points");
 
             // อัปเดตคะแนนใน state
-            setScore(newScore);
+            setScore(newScore);*/
 
             // ส่งข้อมูลไปยังหน้าถัดไป
-            navigate('/third', { state: { imageSrc, text, phone_num, score: newScore } });
+            navigate('/third', { state: { imageSrc, text, phone_num, score} });
 
         } catch (error) {
             console.error("Error updating score or navigating:", error);
