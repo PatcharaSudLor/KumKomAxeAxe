@@ -187,81 +187,161 @@ const componentStyles = `
 `;
 
 
+// --- Constants ---
+const WS_URL = "wss://organic-trout-4j6gx5gpxj5pfj59w-8080.app.github.dev";
+const INITIAL_RECONNECT_DELAY = 1000; // 1 second
+const MAX_RECONNECT_DELAY = 30000; // 30 seconds
+const DISPLAY_DURATION = 10000; // 10 seconds
+
 // --- Component ---
 const DisplayScreen = () => {
   // State for currently displayed item
   const [currentImage, setCurrentImage] = useState(null);
   const [currentText, setCurrentText] = useState("");
-  const [isLoading, setIsLoading] = useState(true); // For initial load
+  const [isShowingContent, setIsShowingContent] = useState(false); // Tracks if card content should be visible
 
   // State for queue management
   const [messageQueue, setMessageQueue] = useState([]);
-  const [isDisplaying, setIsDisplaying] = useState(false);
+  const [isDisplaying, setIsDisplaying] = useState(false); // Tracks if an item is *actively* being shown (during its 10s)
 
-  // Refs and constants
-  const displayTimerRef = useRef(null); // Ref for the 10s timer
+  // State for connection/loading status
+  const [connectionStatus, setConnectionStatus] = useState("connecting"); // 'connecting', 'connected', 'reconnecting', 'disconnected'
+
+  // Refs
+  const wsRef = useRef(null); // Holds the WebSocket instance
+  const displayTimerRef = useRef(null);
+  const reconnectTimerRef = useRef(null); // Holds the setTimeout ID for reconnection attempts
+  const currentRetryDelay = useRef(INITIAL_RECONNECT_DELAY); // Holds the current delay value
+  const isUnmountingRef = useRef(false); // Flag to prevent reconnect on unmount
+
+  // Refs for Animations/Sound
   const audioRef = useRef(null);
-  const alertSoundSrc = "/sounds/alert-sound.mp3"; // Adjust if needed
-  const DISPLAY_DURATION = 10000; // 10 seconds in milliseconds
-
-  // State for animations
-  const [dataKey, setDataKey] = useState(Date.now()); // For content animation reset
+  const alertSoundSrc = "/sounds/alert-sound.mp3";
+  const [dataKey, setDataKey] = useState(Date.now());
   const [showBurst, setShowBurst] = useState(false);
 
-  // --- Function to process the next message in the queue ---
+
+  // --- Function to establish WebSocket connection ---
+  const connectWebSocket = useCallback(() => {
+    // Prevent multiple connections
+    if (wsRef.current && wsRef.current.readyState < 2) { // 0=CONNECTING, 1=OPEN
+      console.log("WebSocket already connecting or open.");
+      return;
+    }
+    // Clear any pending reconnection attempt
+    clearTimeout(reconnectTimerRef.current);
+
+    console.log(`Attempting to connect to ${WS_URL}...`);
+    //setConnectionStatus("connecting");
+    isUnmountingRef.current = false; // Reset unmount flag on new attempt
+
+    const ws = new WebSocket(WS_URL);
+    wsRef.current = ws; // Store the instance
+
+    ws.onopen = () => {
+      console.log("WebSocket connection established.");
+      setConnectionStatus("connected");
+      // Reset reconnect delay on successful connection
+      currentRetryDelay.current = INITIAL_RECONNECT_DELAY;
+      // Clear any lingering reconnect timer just in case
+      clearTimeout(reconnectTimerRef.current);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        // Add the valid message to the queue
+        // Use functional update to ensure we're working with the latest queue state
+        setMessageQueue(prevQueue => [...prevQueue, { imageUrl: data.imageUrl, text: data.text }]);
+        console.log("Message added to queue, length:", messageQueue.length + 1);
+      } catch (error) {
+        console.error("Failed to parse WebSocket message:", event.data, error);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+      // Note: onerror often immediately precedes onclose.
+      // We primarily handle reconnection logic in onclose.
+      // We could set status to 'reconnecting' here, but onclose will likely trigger soon.
+    };
+
+    ws.onclose = (event) => {
+      console.log(`WebSocket closed. Code: ${event.code}, Reason: ${event.reason}, Was Clean: ${event.wasClean}`);
+      wsRef.current = null; // Clear the ref
+
+      // Don't attempt to reconnect if the component is unmounting
+      if (isUnmountingRef.current) {
+        console.log("Close occurred during unmount, not reconnecting.");
+        // setConnectionStatus("disconnected");
+        return;
+      }
+
+      // Don't reconnect on normal closure codes (like 1000) if desired
+      // if (event.code === 1000) {
+      //   console.log("Normal closure, not reconnecting.");
+      //   setConnectionStatus("disconnected");
+      //   return;
+      // }
+
+      // --- Reconnection Logic ---
+      // setConnectionStatus("reconnecting");
+      const delay = currentRetryDelay.current;
+      console.log(`Attempting to reconnect in ${delay / 1000} seconds...`);
+
+      // Clear previous timer just in case
+      clearTimeout(reconnectTimerRef.current);
+
+      reconnectTimerRef.current = setTimeout(() => {
+        // Exponential backoff
+        currentRetryDelay.current = Math.min(
+          delay * 2,
+          MAX_RECONNECT_DELAY
+        );
+        connectWebSocket(); // Try to connect again
+      }, delay);
+    };
+
+  }, []); // Empty dependency array - this function doesn't change
+
+  // --- Function to process the display queue ---
   const processQueue = useCallback(() => {
-    // If already displaying OR queue is empty, do nothing
     if (isDisplaying || messageQueue.length === 0) {
-      // If queue is empty AND not displaying, set back to initial loading state? (Optional)
-       if (!isDisplaying && messageQueue.length === 0 && !isLoading) {
-           // Optional: Transition back to loading state smoothly
-           // setCurrentImage(null);
-           // setCurrentText("");
-           // setIsLoading(true); // Or create a different "waiting" state
-       }
+      // If not displaying an item and queue is empty, hide the content area
+      if (!isDisplaying && messageQueue.length === 0) {
+          setIsShowingContent(false);
+      }
       return;
     }
 
-    // Mark as displaying
     setIsDisplaying(true);
+    setIsShowingContent(true); // Make sure card content area is visible
 
-    // Dequeue the next message (take the first one)
     const nextMessage = messageQueue[0];
-    setMessageQueue(prevQueue => prevQueue.slice(1)); // Update queue state
+    setMessageQueue(prevQueue => prevQueue.slice(1));
 
     console.log("Displaying message:", nextMessage);
 
-    // --- Display the message ---
-    setIsLoading(false); // Ensure loading overlay is off
     setCurrentImage(nextMessage.imageUrl);
     setCurrentText(nextMessage.text || "Incoming Signal...");
-    setDataKey(Date.now()); // Trigger content animation
+    setDataKey(Date.now());
 
-    // Play sound
     if (audioRef.current && alertSoundSrc) {
         audioRef.current.currentTime = 0;
         audioRef.current.play().catch(e => console.error("Audio play failed:", e));
     }
-
-    // Trigger burst animation
     setShowBurst(true);
-    setTimeout(() => setShowBurst(false), 600); // Reset burst after its duration
+    setTimeout(() => setShowBurst(false), 600);
 
-    // --- Start the timer for display duration ---
-    // Clear any existing timer first (safety measure)
-    if (displayTimerRef.current) {
-      clearTimeout(displayTimerRef.current);
-    }
-
+    if (displayTimerRef.current) clearTimeout(displayTimerRef.current);
     displayTimerRef.current = setTimeout(() => {
-      console.log("Display duration ended.");
-      setIsDisplaying(false); // Free up the display
-      // processQueue() will be called automatically by the useEffect below
+      setIsDisplaying(false); // Free up the display slot
+      // The useEffect below will trigger processQueue again if needed
     }, DISPLAY_DURATION);
 
-  }, [isDisplaying, messageQueue, isLoading, alertSoundSrc]); // Dependencies for useCallback
+  }, [isDisplaying, messageQueue, alertSoundSrc]);
 
-  // --- Effect for WebSocket Connection ---
+  // --- Effect for Initial Connection & Cleanup ---
   useEffect(() => {
     // Inject styles
     const styleElement = document.createElement("style");
@@ -271,51 +351,45 @@ const DisplayScreen = () => {
       document.head.appendChild(styleElement);
     }
 
-    // Connect WebSocket
-    const WS_URL = "wss://organic-trout-4j6gx5gpxj5pfj59w-8080.app.github.dev";
-    console.log("Connecting to WebSocket:", WS_URL);
-    const ws = new WebSocket(WS_URL);
+    // Start the connection process
+    isUnmountingRef.current = false;
+    connectWebSocket();
 
-    ws.onopen = () => console.log("WebSocket established");
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log("Received data, adding to queue:", data);
-        // Add the valid message to the queue
-        setMessageQueue(prevQueue => [...prevQueue, { imageUrl: data.imageUrl, text: data.text }]);
-      } catch (error) {
-        console.error("Failed to parse WebSocket message:", event.data, error);
-        // Optionally add an error message to the queue or handle differently
-        // setMessageQueue(prevQueue => [...prevQueue, { imageUrl: null, text: "Signal Error" }]);
-      }
-    };
-
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-      // Optionally add error state message to queue
-      // setMessageQueue(prevQueue => [...prevQueue, { imageUrl: null, text: "Connection Fault" }]);
-    };
-    ws.onclose = (event) => console.log("WebSocket closed:", event.code, event.reason);
-
-    // --- Cleanup ---
+    // --- Cleanup Function ---
     return () => {
-      console.log("Closing WebSocket, clearing timer, removing styles");
-      ws.close();
-      clearTimeout(displayTimerRef.current); // Clear timer on unmount
+      console.log("Cleanup: Component unmounting...");
+      isUnmountingRef.current = true; // Set the flag
+
+      // Clear any pending reconnection timer
+      clearTimeout(reconnectTimerRef.current);
+      console.log("Cleared reconnect timer.");
+
+      // Clear the display timer
+      clearTimeout(displayTimerRef.current);
+      console.log("Cleared display timer.");
+
+      // Close the WebSocket connection if it exists and is open/connecting
+      if (wsRef.current) {
+         // Use code 1000 for normal closure
+        wsRef.current.close(1000, "Component unmounting");
+        console.log("WebSocket connection closed.");
+        wsRef.current = null;
+      }
+
+      // Remove styles
       const existingStyleElement = document.getElementById("hyper-cosmic-broadcast-styles");
       if (existingStyleElement) {
         document.head.removeChild(existingStyleElement);
+        console.log("Removed styles.");
       }
     };
-  }, []); // Run only on mount
+  }, [connectWebSocket]); // Include connectWebSocket in dependency array
 
   // --- Effect to Trigger Queue Processing ---
   useEffect(() => {
-    // Attempt to process the queue whenever the display becomes free,
-    // or when a new item is added to the queue (and display is free)
+    // Process queue when display is free or when queue gets new items (if display is free)
     processQueue();
-  }, [isDisplaying, messageQueue, processQueue]); // Dependencies
+  }, [isDisplaying, messageQueue, processQueue]);
 
   // --- Effect for Dynamic Burst Style Injection (no changes needed) ---
   useEffect(() => {
@@ -335,15 +409,20 @@ const DisplayScreen = () => {
     };
   }, [showBurst]);
 
-  // --- Dynamic Styles & Classes ---
-  // Card visibility depends on whether we are loading initially OR currently displaying something
-  const cardIsActuallyVisible = !isLoading || isDisplaying;
+
+  // --- Render Logic ---
+  const isLoadingState = connectionStatus === 'connecting' || connectionStatus === 'reconnecting';
+  const cardIsActuallyVisible = isShowingContent || isLoadingState; // Show card if loading/reconnecting or showing content
   const cardClass = `hcb-card ${cardIsActuallyVisible ? 'hcb-card-visible' : ''}`;
 
-  // Content animation depends on dataKey changing while displaying
-  const contentWrapperStyle = cardIsActuallyVisible ? {
+  const contentWrapperStyle = isShowingContent ? {
     animation: `hcb-content-appear 0.8s 0.5s cubic-bezier(0.2, 1, 0.3, 1) forwards`
   } : {};
+
+  let loadingText = "Awaiting Signal...";
+  if (connectionStatus === 'connecting') loadingText = "Connecting...";
+  if (connectionStatus === 'reconnecting') loadingText = `Reconnecting (retry in ${Math.round(currentRetryDelay.current / 1000)}s)...`;
+
 
   return (
     <div className="hcb-container">
@@ -357,31 +436,29 @@ const DisplayScreen = () => {
 
       {/* Card */}
       <div className={cardClass}>
-        {/* Show loading only if truly initial loading AND not currently displaying an item */}
-        {isLoading && !isDisplaying ? (
+        {/* Show loading indicator if connecting/reconnecting OR if connected but nothing is being displayed/queued */}
+        {isLoadingState || !isShowingContent ? (
           <div className="hcb-loading">
             <div className="hcb-spinner"></div>
-            <p className="hcb-loading-text">Awaiting Signal...</p> {/* Changed text */}
+            {/* Use dynamic loading text */}
+            <p className="hcb-loading-text">{loadingText}</p>
           </div>
         ) : (
-          // Render content wrapper only if card should be visible
-          cardIsActuallyVisible && (
-              <div
-                key={dataKey} // Use dataKey from state
-                className="hcb-content-wrapper"
-                style={contentWrapperStyle}
-                aria-live="polite"
-              >
-                {/* Use currentImage/currentText from state */}
-                {currentImage && <img src={currentImage} alt="Broadcast visual" className="hcb-image" />}
-                {currentText && <p className="hcb-text">{currentText}</p>}
-              </div>
-          )
+          // Show content only when isShowingContent is true
+          <div
+            key={dataKey}
+            className="hcb-content-wrapper"
+            style={contentWrapperStyle}
+            aria-live="polite"
+          >
+            {currentImage && <img src={currentImage} alt="Broadcast visual" className="hcb-image" />}
+            {currentText && <p className="hcb-text">{currentText}</p>}
+          </div>
         )}
       </div>
-       {/* Optional: Display queue length for debugging */}
+       {/* Optional: Display queue/status for debugging */}
        {/* <div style={{ position: 'absolute', top: '10px', left: '10px', color: 'white', background: 'rgba(0,0,0,0.5)', padding: '5px', borderRadius: '3px', zIndex: 100 }}>
-           Queue: {messageQueue.length} | Displaying: {isDisplaying.toString()}
+           Status: {connectionStatus} | Queue: {messageQueue.length} | Displaying: {isDisplaying.toString()}
        </div> */}
     </div>
   );
