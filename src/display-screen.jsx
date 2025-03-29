@@ -191,7 +191,7 @@ const componentStyles = `
 const WS_URL = "wss://organic-trout-4j6gx5gpxj5pfj59w-8080.app.github.dev";
 const INITIAL_RECONNECT_DELAY = 1000; // 1 second
 const MAX_RECONNECT_DELAY = 30000; // 30 seconds
-const DISPLAY_DURATION = 10000; // 10 seconds
+const DISPLAY_DURATION = 15000; // 15 seconds
 
 // --- Component ---
 const DisplayScreen = () => {

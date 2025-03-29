@@ -47,7 +47,7 @@ function App() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        "imageUrl": "https://cdn.mos.cms.futurecdn.net/SV5w8LxgwLkjk6YG3xULKG-1000-80.jpg",
+        "imageUrl": "https://static.wikia.nocookie.net/theloudhousefanon/images/8/83/IShowSpeed-1.webp/revision/latest/scale-to-width-down/546?cb=20230827125946",
         "text" : text,
         "tel" : phone_num
         
@@ -62,23 +62,27 @@ function App() {
       <div data-layer="KumKom" className="Kumkom" style={{ color: 'black', fontSize: 16, fontFamily: 'Figma Hand', position: 'absolute', top: 15, left: 22, fontWeight: '700', wordWrap: 'break-word' }}>KumKom</div>
       <div data-layer="AxeAxe" className="Axeaxe" style={{ color: '#1A1A4C', fontSize: 16, fontFamily: 'Figma Hand', position: 'absolute', top: 35, left: 59, fontWeight: '700', wordWrap: 'break-word' }}>AxeAxe</div>
       <img data-layer="2e6ba818-1ede-47fd-b5d7-e44bd63e8edb 1" className="E6ba8181ede47fdB5d7E44bd63e8edb1" style={{ width: 27, height: 27, left: 83, top: 0, position: 'absolute', top: 10, left: 95, borderRadius: 100 }} src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ8h3UOd_zOHWf7Va30j-d8vZ-5X99MpvT7UA&s" />
-      <div data-layer="Rectangle 13" className="Rectangle13" style={{ width: 360, height: 6, position: 'absolute', top: 67, left: 0, background: '#1A1A4C' }} />
+      <div data-layer="Rectangle 13" className="Rectangle13" style={{ width: 383, height: 6, position: 'absolute', top: 67, left: 0, background: '#1A1A4C' }} />
       <div data-layer="อัปโหลดรูปภาพที่คุณต้องการแสดงบนจอได้ที่นี่ :" style={{ color: 'black', fontSize: 11, fontFamily: 'Inter', position: 'absolute', top: 174, left: 22, fontWeight: '300', wordWrap: 'break-word' }}>อัปโหลดรูปภาพที่คุณต้องการแสดงบนจอได้ที่นี่ :</div>
       <div data-layer="แค่เธอเปิด(วาร์ป)โลกก็เปลี่ยน" style={{ textAlign: 'center', color: '#FF0707', fontSize: 14, fontFamily: 'Roboto Mono', position: 'absolute', top: 116, left: 95, fontWeight: '400', wordWrap: 'break-word', textShadow: '0px 4px 4px rgba(0, 0, 0, 0.25)' }}>แค่เธอเปิด(วาร์ป)โลกก็เปลี่ยน</div>
       <div data-layer="Group 6" className="Group6" style={{ width: 69, height: 19, position: 'absolute', left: 145, top: 374 }}>
-        <div data-layer="Rectangle 9" className="Rectangle9" style={{ width: 69, height: 14, left: 'center', top: 65, position: 'absolute', background: 'white', borderRadius: 124, border: '0.50px black solid' }} />
 
         {/* ปุ่มอัปโหลดรูปภาพ */}
         <div
           data-layer="อัปโหลดรูปภาพ"
           style={{
-            left: 'center',
-            top: 68,
+            left: -5,
+            top: 64,
+            width:68,
             position: 'Relative',
-            color: 'black',
-            fontSize: 8,
+            color: 'white',
+            backgroundColor: 'red',
+            borderRadius:'33px',
+            fontSize: 10,
             fontFamily: 'Inter',
             fontWeight: '400',
+            padding: '1px',
+            padding: '5px 10px',
             wordWrap: 'break-word',
             cursor: 'pointer',
           }}
@@ -196,6 +200,7 @@ function App() {
             width: 50,
             height: 22,
             backgroundColor: '#9AFF8C',
+            color:'white',
             borderRadius: 33,
             border: 'none',
             fontSize: 10,
